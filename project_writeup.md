@@ -28,6 +28,8 @@ The goals / steps of this project are the following:
 [masked_binary_region]: ./masked_binary_region.png "Masked binary"
 [binary_region_with_mask]: ./binary_region_with_mask.png "Binary with mask"
 [with_lines]: ./with_lines.png "lines"
+[rect_w_lines]: ./rect_w_lines.png "rect and lines"
+[rect_and_lines]: ./rect_and_lines.png "rect and lines"
 [final]: ./final.png "Final"
 [video1]: ./project_video_result.mp4 "Video"
 
@@ -85,15 +87,7 @@ This should help in avoiding that the line finding algorithm will not be "distra
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform includes a function called `perspective_transform()`, which appears in lines 197 through 265 in the `Pipeline` class. The `perspective_transform()` function takes as inputs an image (`img`), and uses a transforrm matrix `M` calculated during the calibration step (this is because the calibration step is only executed once, so I thought it would not be necessary to perform the transformation more than once).  I chose to hardcode the source and destination points in the following manner:
-
-```python
-src = np.float32([[585, 460],[203, 720],[1127,720],[695,460]])
-dst = np.float32([[320, 0],[320, 720],[960, 720],[960, 0]])   
-```
-
-
-This resulted in the following source and destination points:
+The code for my perspective transform includes a function called `perspective_transform()`, which appears in lines 197 through 265 in the `Pipeline` class. The `perspective_transform()` function takes as inputs an image (`img`), and uses a transforrm matrix `M` calculated during the calibration step (this is because the calibration step is only executed once, so I thought it would not be necessary to perform the transformation more than once).  I chose to hardcode the source and destination points:
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
@@ -104,21 +98,22 @@ This resulted in the following source and destination points:
 
 I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
 
-![alt text][image4]
+![alt text][binary_warped]
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+To identify lines out of these lane-like pixels, a windowing approach was used. Starting from the bottom, a rectangular window is used to detect if there are many pixels (`50`) in the window, and if so, average their x coordinate, and that should yield a likely position of the line. This step is repeated by moving the window up, re-centering the rectangle around the newly found line (if any).
+After this sequence of pixel is found, I fit a 2nd order polynomial through them, which approximate each line to a parabola. This part of the algorithm results in the following image, where in green are represented the windowed rectangles and in yellow the fitted polynomial. This algorithm is in lines `105` to `187` in the Pipeline class.
 
-![alt text][image5]
+![alt text][rect_and_lines]
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+Using a second order polynomial makes easier to calculate the curvature of a line using well-known equations. See lines `208` to `218` for the steps.
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+I implemented this step in lines  `278` through `298` in the Pipeline class in the `perspective_transform` function.  Here is an example of my result on a test image:
 
 ![alt text][final]
 
@@ -129,7 +124,12 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
 Here's a [link to my video result](./project_video_result.mp4)
+To reduce noise and to make the line detection more robust to sporadic pixel-changes on the image, the lane lines information are updated at each frame, keeping 80% of old information. Essentially is implemented as
+```python
+self.l_line.best_fit = self.l_line.best_fit*0.8 + self.l_line.current_fit*0.2
+```
 
+This can be seen at lines `164` and `178` in the `Pipeline()` class.
 ---
 
 ### Discussion
