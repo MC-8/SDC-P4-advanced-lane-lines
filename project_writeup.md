@@ -48,7 +48,7 @@ You're reading it!
 ### Camera Calibration
 
 
-The code for this step is contained in the calibrate() function at line 258 through 292 in the Pipeline class declared in  "./advanced_lane_finding.ipynb".  
+The code for this step is contained in the calibrate() function at line `289` through `335` in the `Pipeline` class declared in  "./advanced_lane_finding.ipynb".  
 
 I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
 
@@ -69,7 +69,7 @@ To demonstrate this step, I will describe how I apply the distortion correction 
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines 28 through 61 in the main `Pipeline` class). I chose to convert the frame to HLS color space because both L and S channels proved to detect lines in a variety of lighting conditions and line colors (yellow or white). A x-gradient Sobel threshold is used, and combined with the H and L thresholds achieve a binary output as follows:
+I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines `28` through `61` in the main `Pipeline` class). I chose to convert the frame to HLS color space because both L and S channels proved to detect lines in a variety of lighting conditions and line colors (yellow or white). A x-gradient Sobel threshold is used, and combined with the H and L thresholds achieve a binary output as follows:
 
 ![alt text][color_binary]
 
@@ -87,7 +87,7 @@ This should help in avoiding that the line finding algorithm will not be "distra
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform includes a function called `perspective_transform()`, which appears in lines 197 through 265 in the `Pipeline` class. The `perspective_transform()` function takes as inputs an image (`img`), and uses a transforrm matrix `M` calculated during the calibration step (this is because the calibration step is only executed once, so I thought it would not be necessary to perform the transformation more than once).  I chose to hardcode the source and destination points:
+The code for my perspective transform includes a function called `perspective_transform()`, which appears in lines `206` through `286` in the `Pipeline` class. The `perspective_transform()` function takes as inputs an image (`img`), and uses a transforrm matrix `M` calculated during the calibration step (this is because the calibration step is only executed once, so I thought it would not be necessary to perform the transformation more than once).  I chose to hardcode the source and destination points:
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
@@ -103,17 +103,18 @@ I verified that my perspective transform was working as expected by drawing the 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
 To identify lines out of these lane-like pixels, a windowing approach was used. Starting from the bottom, a rectangular window is used to detect if there are many pixels (`50`) in the window, and if so, average their x coordinate, and that should yield a likely position of the line. This step is repeated by moving the window up, re-centering the rectangle around the newly found line (if any).
-After this sequence of pixel is found, I fit a 2nd order polynomial through them, which approximate each line to a parabola. This part of the algorithm results in the following image, where in green are represented the windowed rectangles and in yellow the fitted polynomial. This algorithm is in lines `105` to `187` in the Pipeline class.
+After this sequence of pixel is found, I fit a 2nd order polynomial through them, which approximate each line to a parabola. This part of the algorithm results in the following image, where in green are represented the windowed rectangles and in yellow the fitted polynomial. This algorithm is in lines `108` to `174` in the Pipeline class. The lines are checked against a minimum distance between them, and the resulting line, if valid, is updated using 20% of new information on the past, to filter line noise.
+
 
 ![alt text][rect_and_lines]
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-Using a second order polynomial makes easier to calculate the curvature of a line using well-known equations. See lines `208` to `218` for the steps.
+Using a second order polynomial makes easier to calculate the curvature of a line using well-known equations. See lines `187` to `195` for the steps.
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines  `278` through `298` in the Pipeline class in the `perspective_transform` function.  Here is an example of my result on a test image:
+I implemented this step in lines  `258` through `277` in the `Pipeline` class in the `perspective_transform` function.  Here is an example of my result on a test image:
 
 ![alt text][final]
 
@@ -125,12 +126,16 @@ I implemented this step in lines  `278` through `298` in the Pipeline class in t
 
 Here's a [link to my video result](./project_video_result.mp4)
 To reduce noise and to make the line detection more robust to sporadic pixel-changes on the image, the lane lines information are updated at each frame, keeping 80% of old information.
-This can be seen at lines `164` and `178` in the `Pipeline()` class. Essentially is implemented as
+This can be seen at lines `165` and `175` in the `Pipeline()` class. Essentially is implemented as
 ```python
-self.l_line.best_fit = self.l_line.best_fit*0.8 + self.l_line.current_fit*0.2
+self.l_line.bestx = self.l_line.bestx*0.8 + left_fitx*0.2
+``` 
+The distance from the center is calculated at line `284` in the `Pipeline` class.
+```python
+self.distance_from_centre_m = -((left_fitx[-1] - (1280 - right_fitx[-1]))) * self.xm_per_pix
 ```
+The central position is assumed to be the center-pixel (due to center mounted camera), the distance is negative when the car is to the left of the center, and positive otherwise.
 
----
 
 ### Discussion
 
@@ -139,4 +144,5 @@ self.l_line.best_fit = self.l_line.best_fit*0.8 + self.l_line.current_fit*0.2
 The approach used in this project was very simplistic and only works in very good conditions of the video. More challenging videos reveal that the algorithm is not robust enough to accurately detect lines under various situations.
 There are multiple points where the algorithm could be improved.
 The thresholding algorithm just uses one RGB to HLS conversion and takes two color channels and one gradient, this could be improved by using data from multiple color spaces and gradients. Also, if the asphalt sharply changes in color, as it is the case when driving on roads with old and new asphalt, it is very likely that these transitions may be detected as lines.
-Sanity check the detected lines, and making sure that there are only two lines (left-right) with no abrupt changes in curvature/fit/width/distance may robustify the algorithm. 
+The current algorithm sanity checks the detected lines for minimum distance, but not maximum, and it should make sure that there are only two lines (left-right) with no abrupt changes in curvature/fit/width/distance to robustify the algorithm. 
+Tuning parameters was a trial and error process which would have benefit from a more interactive design process.
