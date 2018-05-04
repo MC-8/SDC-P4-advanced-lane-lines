@@ -103,7 +103,7 @@ I verified that my perspective transform was working as expected by drawing the 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
 To identify lines out of these lane-like pixels, a windowing approach was used. Starting from the bottom, a rectangular window is used to detect if there are many pixels (`50`) in the window, and if so, average their x coordinate, and that should yield a likely position of the line. This step is repeated by moving the window up, re-centering the rectangle around the newly found line (if any).
-After this sequence of pixel is found, I fit a 2nd order polynomial through them, which approximate each line to a parabola. This part of the algorithm results in the following image, where in green are represented the windowed rectangles and in yellow the fitted polynomial. This algorithm is in lines `108` to `174` in the Pipeline class. The lines are checked against a minimum distance between them, and the resulting line, if valid, is updated using 20% of new information on the past, to filter line noise.
+After this sequence of pixel is found, I fit a 2nd order polynomial through them, which approximate each line to a parabola. This is implemented using `np.polyfit` at lines `146` and `147`. This part of the algorithm results in the following image, where in green are represented the windowed rectangles and in yellow the fitted polynomial. This algorithm is in lines `108` to `174` in the Pipeline class. The lines are checked against a minimum distance between them, and the resulting line, if valid, is updated using 20% of new information on the past, to filter line noise.
 
 
 ![alt text][rect_and_lines]
