@@ -124,16 +124,19 @@ I implemented this step in lines  `278` through `298` in the Pipeline class in t
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
 Here's a [link to my video result](./project_video_result.mp4)
-To reduce noise and to make the line detection more robust to sporadic pixel-changes on the image, the lane lines information are updated at each frame, keeping 80% of old information. Essentially is implemented as
+To reduce noise and to make the line detection more robust to sporadic pixel-changes on the image, the lane lines information are updated at each frame, keeping 80% of old information.
+This can be seen at lines `164` and `178` in the `Pipeline()` class. Essentially is implemented as
 ```python
 self.l_line.best_fit = self.l_line.best_fit*0.8 + self.l_line.current_fit*0.2
 ```
 
-This can be seen at lines `164` and `178` in the `Pipeline()` class.
 ---
 
 ### Discussion
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+The approach used in this project was very simplistic and only works in very good conditions of the video. More challenging videos reveal that the algorithm is not robust enough to accurately detect lines under various situations.
+There are multiple points where the algorithm could be improved.
+The thresholding algorithm just uses one RGB to HLS conversion and takes two color channels and one gradient, this could be improved by using data from multiple color spaces and gradients. Also, if the asphalt sharply changes in color, as it is the case when driving on roads with old and new asphalt, it is very likely that these transitions may be detected as lines.
+Sanity check the detected lines, and making sure that there are only two lines (left-right) with no abrupt changes in curvature/fit/width/distance may robustify the algorithm. 
